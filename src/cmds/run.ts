@@ -1,7 +1,6 @@
-import axios from 'axios';
-import randomatic from 'randomatic';
 import yargs from 'yargs';
 import Logger from '../utils/logger';
+import { sendRequest } from '../utils/sendRequest';
 
 export const command = 'run <target>';
 export const desc = 'send requests to target';
@@ -73,7 +72,7 @@ export const handler = async (args: CliArgs) => {
       return;
     }
 
-    await sendRequest(target, makeRequestId());
+    await sendRequest({ target, logger });
     count++;
     timeout = setTimeout(makeRequest, getTimeout());
   }
@@ -83,27 +82,6 @@ export const handler = async (args: CliArgs) => {
       clearTimeout(timeout);
     }
   });
-}
-
-async function sendRequest(target: string, id: string) {
-  const url = makeTargetUrl(target, id);
-
-  try {
-    await axios.get(url);
-    logger.verbose(`sent: GET ${url}`);
-  } catch (error: any) {
-    logger.error(error.message);
-  }
-}
-
-function makeTargetUrl(target: string, id: string) {
-  const url = new URL(target);
-  url.searchParams.append('tfk', id);
-  return url.toString();
-}
-
-function makeRequestId() {
-  return `${process.pid}-${randomatic('A0', 16)}`
 }
 
 function exitAfterDuration({ duration }: CliArgs) {
