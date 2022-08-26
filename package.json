@@ -1,7 +1,7 @@
 {
   "name": "@nendlabs/traffika",
   "version": "1.0.0",
-  "description": "send test traffic to a server",
+  "description": "a cli tool for http load tests",
   "main": "index.js",
   "scripts": {
     "package": "npm run build && node build/index.js",
