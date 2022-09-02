@@ -33,6 +33,12 @@ export const builder: yargs.CommandBuilder = {
     type: 'number',
     default: 200
   },
+  sync: {
+    alias: 's',
+    describe: 'run requests synchronously',
+    type: 'boolean',
+    default: false
+  }
 };
 
 interface CliArgs {
@@ -42,12 +48,13 @@ interface CliArgs {
   duration?: number;
   help?: boolean;
   verbose?: boolean;
+  sync?: boolean;
 };
 
 const logger = new Logger('run');
 
 export const handler = async (args: CliArgs) => {
-  const { maxWait, limit, target, duration } = args;
+  const { maxWait, limit, target, duration, sync} = args;
 
   if (!target) {
     logger.warn('no target specified');
@@ -56,32 +63,60 @@ export const handler = async (args: CliArgs) => {
   
   exitAfterDuration(args);
 
-  const getTimeout = () => {
-    if (maxWait) {
-      return Math.max(100, Math.random() * maxWait)
-    } else {
-      return 100;
-    }
-  };
-  
-  let count = 0;
-  let timeout = setTimeout(makeRequest, getTimeout());
-
-  async function makeRequest() {
-    if (!duration && count > limit) {
-      return;
-    }
-
-    await sendRequest({ target, logger });
-    count++;
-    timeout = setTimeout(makeRequest, getTimeout());
+  if (sync) {
+    await makeRequestsInSeries();
+  } else {
+    await makeRequestsInParallel();
   }
 
-  process.on('exit', () => {
-    if (timeout) {
-      clearTimeout(timeout);
+  async function makeRequestsInParallel() {
+    let count = 0;
+    
+    const makeRequest = async () => {
+      if (shouldExit(count)) {
+        return;
+      }
+
+      await sendRequest({ target, logger });
+      count++;
+    };
+
+    await Promise.all(Array(limit).fill(0).map(makeRequest));
+  }
+
+  async function makeRequestsInSeries() {
+    const getTimeout = () => {
+      if (maxWait) {
+        return Math.max(100, Math.random() * maxWait)
+      } else {
+        return 100;
+      }
+    };
+
+    let timeout = setTimeout(makeRequest, getTimeout());
+
+    let count = 0;
+
+    async function makeRequest() {
+      if (shouldExit(count)) {
+        return;
+      }
+  
+      await sendRequest({ target, logger });
+      count++;
+      timeout = setTimeout(makeRequest, getTimeout());
     }
-  });
+
+    process.on('exit', () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    });
+  }
+
+  function shouldExit(count: number) {
+    return !duration && count >= limit;
+  }
 }
 
 function exitAfterDuration({ duration }: CliArgs) {
