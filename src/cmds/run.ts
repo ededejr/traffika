@@ -1,6 +1,7 @@
 import yargs from 'yargs';
 import Logger from '../utils/logger';
 import { sendRequest } from '../utils/sendRequest';
+import Telemetry from '../utils/telemetry';
 
 export const command = 'run <target>';
 export const desc = 'send requests to target';
@@ -24,7 +25,7 @@ export const builder: yargs.CommandBuilder = {
   },
   duration: {
     alias: 'd',
-    describe: 'duration in seconds',
+    describe: 'duration in milliseconds',
     type: 'number'
   },
   maxWait: {
@@ -51,10 +52,10 @@ interface CliArgs {
   sync?: boolean;
 };
 
-const logger = new Logger('run');
-
 export const handler = async (args: CliArgs) => {
-  const { maxWait, limit, target, duration, sync} = args;
+  const { maxWait, limit, target, duration, sync, verbose } = args;
+
+  const logger = new Logger('run', verbose);
 
   if (!target) {
     logger.warn('no target specified');
@@ -81,7 +82,16 @@ export const handler = async (args: CliArgs) => {
       count++;
     };
 
-    await Promise.all(Array(limit).fill(0).map(makeRequest));
+    async function batch() {
+      if (shouldExit(count)) {
+        return;
+      }
+
+      await Promise.all(Array(Math.min(limit, 100)).fill(0).map(makeRequest));
+      await batch();
+    }
+
+    await batch();
   }
 
   async function makeRequestsInSeries() {
@@ -125,6 +135,7 @@ function exitAfterDuration({ duration }: CliArgs) {
     // if the duration is reached, the process
     // will exit
     setTimeout(() => {
+      Telemetry.onExit();
       process.exit(0);
     }, duration).unref();
   }

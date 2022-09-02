@@ -1,12 +1,14 @@
 import chalk from 'chalk';
 
-type LogType = 'info' | 'verbose' | 'error' | 'warn';
+type LogType = 'info' | 'verbose' | 'error' | 'warn' | 'important';
 
 export default class Logger {
   owner: string;
+  isVerbose: boolean;
 
-  constructor(owner: string) {
+  constructor(owner: string, isVerbose: boolean = false) {
     this.owner = owner;
+    this.isVerbose = isVerbose;
   }
 
   private formatMessage(message: string, type: LogType = 'info') {
@@ -25,6 +27,9 @@ export default class Logger {
       case 'warn':
         method = chalk.yellow;
         break;
+      case 'important':
+        method = chalk.magenta;
+        break;
     }
 
     return method(`${chalk.bold.dim(`[${this.owner}]`)} ${message}`);
@@ -35,7 +40,9 @@ export default class Logger {
   }
 
   public verbose(message: string) {
-    console.debug(this.formatMessage(message));
+    if (this.isVerbose) {
+      console.debug(this.formatMessage(message)); 
+    }
   }
 
   public error(message: string) {
@@ -44,5 +51,9 @@ export default class Logger {
 
   public warn(message: string) {
     console.warn(this.formatMessage(message));
+  }
+
+  public important(message: string) {
+    console.log(this.formatMessage(message, 'important'));
   }
 }
