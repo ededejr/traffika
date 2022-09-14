@@ -135,7 +135,7 @@ function exitAfterDuration({ duration }: CliArgs) {
 		// if the duration is reached, the process
 		// will exit
 		setTimeout(() => {
-			Telemetry.onExit();
+			Telemetry.outputStats();
 			process.exit(0);
 		}, duration).unref();
 	}

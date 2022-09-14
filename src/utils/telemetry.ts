@@ -3,7 +3,14 @@ import chalk from 'chalk';
 const history = new Map<number, { data: string; timestamp: number }>();
 const entryRgx = /::(?<id>[A-Z0-9\-]+)]\sstop:\s(?<time>[0-9\.]+)/;
 
-function exitHandler() {
+export interface TelemetryStats { 
+	count: number;
+	avg: number;
+	fastest: number;
+	slowest: number;
+}
+
+function getStats(): TelemetryStats {
 	const entries = Array.from(history.values());
 
 	const metadata = entries
@@ -30,12 +37,6 @@ function exitHandler() {
 			};
 		});
 
-	// print out more detailed summary (inefficient)
-	const important = (s: string) => console.log(chalk.magenta(s));
-	const dim = (s: string) => console.log(chalk.dim(s));
-
-	important('\nSummary:');
-
 	const speeds = metadata
 		.map(({ runTime }) => runTime?.int)
 		.filter(Boolean) as number[];
@@ -44,18 +45,30 @@ function exitHandler() {
 	const fastest = Math.min(...speeds);
 	const slowest = Math.max(...speeds);
 
-	dim(`  count: ${speeds.length} requests`);
+	return {
+		count: speeds.length,
+		avg,
+		fastest,
+		slowest,
+	}
+}
+
+function outputStats({ count, avg, fastest, slowest }: TelemetryStats = getStats()) {
+	// print out more detailed summary (inefficient)
+	const important = (s: string) => console.log(chalk.magenta(s));
+	const dim = (s: string) => console.log(chalk.dim(s));
+	important('\nSummary:');
+	dim(`  count: ${count} requests`);
 	dim(`  average: ${Math.round(avg)}ms`);
 	dim(`  fastest: ${Math.round(fastest)}ms`);
 	dim(`  slowest: ${Math.round(slowest)}ms`);
 	console.log('');
 }
 
-process.on('beforeExit', exitHandler);
-
 const Telemetry = {
 	history,
-	onExit: exitHandler,
+	outputStats,
+	getStats,
 };
 
 export default Telemetry;
