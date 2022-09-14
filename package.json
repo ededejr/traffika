@@ -9,7 +9,7 @@
     "lint": "prettier --write 'src/**/*.ts'",
     "lint:check": "prettier --check 'src/**/*.ts'",
     "prepare": "husky install",
-    "cluster:yuk": "npm run build && node build/index.js cluster http://localhost:4000 -d 5000 -v -w 3 -l 100",
+    "cluster:yuk": "npm run build && node build/index.js cluster http://localhost:4000 -d 5000 -v -w 3",
     "single:yuk": "npm run build && node build/index.js run http://localhost:4000 -d 5000 -v"
   },
   "author": "@ededejr",

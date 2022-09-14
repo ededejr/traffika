@@ -79,8 +79,8 @@ function handleProcessExit({ logger }: UtilOptions) {
 
 function merge(stats: TelemetryStats[]) {
   return stats.reduce((acc, stat) => {
+    acc.avg = ((acc.count * acc.avg) + (stat.count * stat.avg)) / (acc.count + stat.count);
     acc.count += stat.count;
-    acc.avg = (acc.avg + stat.avg) / 2;
     acc.slowest = Math.max(acc.slowest, stat.slowest);
     acc.fastest = Math.min(stat.fastest, acc.fastest);
     return acc;
