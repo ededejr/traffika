@@ -26,6 +26,12 @@ export const builder: yargs.CommandBuilder = {
 		describe: 'max number of workers to use',
 		type: 'number',
 	},
+	batch: {
+		alias: 'b',
+		describe: 'batch size for requests',
+		type: 'number',
+		default: 100
+	},
   duration: {
 		alias: 'd',
 		describe: 'duration in milliseconds',
@@ -37,12 +43,13 @@ interface CliArgs {
 	target: string;
 	limit: number;
   verbose: boolean;
+	batch: number;
   workers?: number;
 	help?: boolean;
   duration?: number;
 }
 
 export const handler = async (args: CliArgs) => {
-  const { limit, target, verbose, workers, duration } = args;
-  runWithCluster({ limit, target, verbose, workers, duration });
+  const { limit, target, verbose, workers, duration, batch } = args;
+  runWithCluster({ limit, target, verbose, workers, duration, batch });
 };

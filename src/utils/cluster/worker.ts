@@ -5,8 +5,9 @@ import Telemetry from '../telemetry';
 import WorkerNode, { IPCPacket } from './WorkerNode';
 
 if (cluster.isWorker) {
-  const [,,target, limit, duration, verbose] = process.argv;
+  const [,,target, limit, batch, duration, verbose] = process.argv;
   const limitInt = parseInt(limit);
+  const batchInt = parseInt(batch);
   const logger = new Logger(`w::${process.pid}`, verbose === 'true');
   const wn = new WorkerNode();
   const state = {
@@ -78,7 +79,8 @@ if (cluster.isWorker) {
 				return;
 			}
 
-			await Promise.all(Array(Math.min(limitInt, 100)).fill(0).map(makeRequest));
+      const batchSize = limitInt < batchInt ? limitInt : batchInt;
+			await Promise.all(Array(batchSize).fill(0).map(makeRequest));
 			await batch();
 		}
 

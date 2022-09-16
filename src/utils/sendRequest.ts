@@ -1,4 +1,5 @@
 import TaskTracker from '@ededejr/task-tracker';
+import { faker } from '@faker-js/faker';
 import axios from 'axios';
 import chalk from 'chalk';
 import randomatic from 'randomatic';
@@ -17,9 +18,16 @@ export async function sendRequest(params: Params) {
 
 	const f = async () => {
 		const url = makeTargetUrl(target, requestTag);
+		const messages: {
+			[Property in keyof typeof logger]?: string;
+		} = {};
 
 		try {
-			const res = await axios.get(url);
+			const res = await axios.get(url, {
+				headers: {
+					'User-Agent': faker.internet.userAgent(),
+				}
+			});
 			const statusString = res.status.toString();
 			const formatter =
 				statusString.startsWith('4') || statusString.startsWith('5')
@@ -27,9 +35,19 @@ export async function sendRequest(params: Params) {
 					: statusString.startsWith('2')
 					? chalk.green
 					: chalk.yellow;
-			logger.verbose(`sent: ${chalk.bold(formatter(res.status))} GET ${url}`);
+			messages.verbose = `sent: ${chalk.bold(formatter(res.status))} GET ${url}`;
 		} catch (error: any) {
-			logger.error(error.message);
+			messages.error = error.message;
+		}
+
+		for (const key in messages) {
+			const typedKey = key as keyof typeof logger;
+			const maybeLogFn = logger[typedKey];
+			const maybeMessage = messages[typedKey];
+			
+			if (typeof maybeLogFn === 'function' && maybeMessage) {
+				maybeLogFn.bind(logger)(maybeMessage);
+			}
 		}
 	};
 

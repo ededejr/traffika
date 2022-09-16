@@ -9,6 +9,7 @@ interface Options {
   target: string;
 	limit: number;
   verbose: boolean;
+  batch: number;
   duration?: number;
   workers?: number;
 };
@@ -41,7 +42,7 @@ type UtilOptions = Options & {
   logger: Logger;
 }
 
-function createWorkers({ logger, limit, target, verbose, duration, workers }: UtilOptions) {
+function createWorkers({ logger, limit, target, verbose, duration, workers, batch }: UtilOptions) {
   return new Promise((resolve) => {
     logger.verbose('setting up cluster...');
     const cores = cpus().length;
@@ -54,6 +55,7 @@ function createWorkers({ logger, limit, target, verbose, duration, workers }: Ut
       args: [
         target,
         requestsPerWorker.toString(),
+        batch.toString(),
         Boolean(duration).toString(),
         verbose.toString()
       ],

@@ -28,7 +28,7 @@ export default class Logger {
 				method = chalk.yellow;
 				break;
 			case 'important':
-				method = chalk.magenta;
+				method = chalk.magentaBright.bold;
 				break;
 		}
 
@@ -36,21 +36,21 @@ export default class Logger {
 	}
 
 	public info(message: string) {
-		console.log(this.formatMessage(message));
+		console.log(this.formatMessage(message, 'info'));
 	}
 
 	public verbose(message: string) {
 		if (this.isVerbose) {
-			console.debug(this.formatMessage(message));
+			console.debug(this.formatMessage(message, 'verbose'));
 		}
 	}
 
 	public error(message: string) {
-		console.error(new Error(this.formatMessage(message)));
+		console.error(this.formatMessage(message, 'error'));
 	}
 
 	public warn(message: string) {
-		console.warn(this.formatMessage(message));
+		console.warn(this.formatMessage(message, 'warn'));
 	}
 
 	public important(message: string) {

@@ -16,6 +16,7 @@
   "license": "MIT",
   "dependencies": {
     "@ededejr/task-tracker": "^0.1.1",
+    "@faker-js/faker": "^7.5.0",
     "axios": "^0.26.0",
     "chalk": "^4.1.1",
     "randomatic": "^3.1.1",
