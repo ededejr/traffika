@@ -107,7 +107,7 @@ Options:
 
 #### examples
 
-##### send 15 requests to a localhost server using 2 threads
+##### send 15 requests to a localhost server using 2 workers
 ```
 traffika blast http://localhost:4000 -l 15 -w 2 -v
 ```
