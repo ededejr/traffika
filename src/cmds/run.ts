@@ -70,6 +70,10 @@ export const handler = async (args: CliArgs) => {
 		await makeRequestsInParallel();
 	}
 
+	process.on('beforeExit', () => {
+		Telemetry.outputStats();
+	});
+
 	async function makeRequestsInParallel() {
 		let count = 0;
 

@@ -85,13 +85,27 @@ function merge(stats: TelemetryStats[]) {
     acc.count += stat.count;
     acc.slowest = Math.max(acc.slowest, stat.slowest);
     acc.fastest = Math.min(stat.fastest, acc.fastest);
+    for (const entry of stat.statusCodes) {
+      const status = entry.status || 'undefined';
+      const index = acc.statusCodes.findIndex(e => e.status === status);
+      
+      if (index === -1) {
+        acc.statusCodes.push({ ...entry, status });
+      } else {
+        acc.statusCodes[index] = {
+          count: entry.count + acc.statusCodes[index].count,
+          status
+        };
+      }
+    }
     return acc;
   }, {
     count: 0,
     avg: 0,
     fastest: Infinity,
     slowest: 0,
-  });
+    statusCodes: []
+  } as TelemetryStats);
 }
 
 let TOTAL_REQUESTS = 0;

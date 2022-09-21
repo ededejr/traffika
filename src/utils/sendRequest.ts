@@ -4,7 +4,7 @@ import axios from 'axios';
 import chalk from 'chalk';
 import randomatic from 'randomatic';
 import Logger from './logger';
-import Telemetry from './telemetry';
+import Telemetry, { HistoryEntryMetadata } from './telemetry';
 
 type Params = {
 	target: string;
@@ -22,22 +22,41 @@ export async function sendRequest(params: Params) {
 			[Property in keyof typeof logger]?: string;
 		} = {};
 
+		const metadata: HistoryEntryMetadata = {};
+		
+		let res;
+
 		try {
-			const res = await axios.get(url, {
+			res = await axios.get(url, {
 				headers: {
 					'User-Agent': faker.internet.userAgent(),
 				}
 			});
-			const statusString = res.status.toString();
-			const formatter =
-				statusString.startsWith('4') || statusString.startsWith('5')
-					? chalk.red
-					: statusString.startsWith('2')
-					? chalk.green
-					: chalk.yellow;
-			messages.verbose = `sent: ${chalk.bold(formatter(res.status))} GET ${url}`;
 		} catch (error: any) {
-			messages.error = error.message;
+			res = error.response;
+
+			if (!res) {
+				messages.error = error.message;
+			}
+		} finally {
+			
+			if (res) {
+				const statusString = res.status.toString();
+				const formatter =
+					statusString.startsWith('4') || statusString.startsWith('5')
+						? chalk.red
+						: statusString.startsWith('2')
+						? chalk.green
+						: chalk.yellow;
+				messages.verbose = `sent: ${chalk.bold(formatter(res.status))} GET ${url}`;
+
+				metadata.statusString = statusString;
+				metadata.ua = res['config']['headers']['User-Agent'];
+			}
+
+			if (Object.keys(metadata).length) {
+				Cache.set(requestTag, metadata);
+			}
 		}
 
 		for (const key in messages) {
@@ -51,16 +70,36 @@ export async function sendRequest(params: Params) {
 		}
 	};
 
-	return await tracker.run(f, {
+	return await Tracker.run(f, {
 		name: requestTag,
 	});
 }
 
-const tracker = new TaskTracker({
+const Cache = new Map();
+
+const Tracker = new TaskTracker({
 	name: 'trafikka',
 	maxHistorySize: 100,
 	persistEntry: async ({ index, ...entry }) => {
-		Telemetry.history.set(index, entry);
+		const found = entry.data.match(Telemetry.entryRgx);
+		let metadata = undefined;
+
+		if (found) {
+			const { id, duration } = found.groups || {};
+			if (Cache.has(id)) {
+				metadata = {
+					...Cache.get(id),
+					duration,
+					id
+				};
+				Cache.delete(id);
+			}
+		}
+
+		Telemetry.history.set(index, {
+			...entry,
+			metadata,
+		});
 	},
 });
 
