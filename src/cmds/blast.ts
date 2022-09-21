@@ -1,8 +1,8 @@
 import yargs from 'yargs';
 import runWithCluster from '../utils/cluster/primary';
 
-export const command = 'cluster <target>';
-export const desc = 'send requests to target';
+export const command = 'blast <target>';
+export const desc = 'send requests to target on multiple threads';
 export const builder: yargs.CommandBuilder = {
 	target: {
 		describe: 'target url',
@@ -12,6 +12,11 @@ export const builder: yargs.CommandBuilder = {
 	verbose: {
 		alias: 'v',
 		describe: 'verbose output',
+		type: 'boolean',
+		default: false,
+	},
+	debug: {
+		describe: 'enable debug logs',
 		type: 'boolean',
 		default: false,
 	},
@@ -43,6 +48,7 @@ interface CliArgs {
 	target: string;
 	limit: number;
   verbose: boolean;
+	debug: boolean;
 	batch: number;
   workers?: number;
 	help?: boolean;
@@ -50,6 +56,6 @@ interface CliArgs {
 }
 
 export const handler = async (args: CliArgs) => {
-  const { limit, target, verbose, workers, duration, batch } = args;
-  runWithCluster({ limit, target, verbose, workers, duration, batch });
+  const { limit, target, verbose, workers, duration, batch, debug } = args;
+  runWithCluster({ limit, target, verbose, workers, duration, batch, debug });
 };

@@ -9,6 +9,7 @@ interface Options {
   target: string;
 	limit: number;
   verbose: boolean;
+  debug: boolean;
   batch: number;
   duration?: number;
   workers?: number;
@@ -16,8 +17,8 @@ interface Options {
 
 export default async function runWithCluster(options: Options) {
   if (cluster.isPrimary) {
-    const { target, verbose } = options;
-    const logger = new Logger('primary', verbose);
+    const { target, verbose, debug } = options;
+    const logger = new Logger('primary', {verbose, debug});
 
     if (!target) {
       logger.warn('no target specified');
@@ -42,7 +43,7 @@ type UtilOptions = Options & {
   logger: Logger;
 }
 
-function createWorkers({ logger, limit, target, verbose, duration, workers, batch }: UtilOptions) {
+function createWorkers({ logger, limit, target, verbose, duration, workers, batch, debug }: UtilOptions) {
   return new Promise((resolve) => {
     logger.verbose('setting up cluster...');
     const cores = cpus().length;
@@ -57,7 +58,8 @@ function createWorkers({ logger, limit, target, verbose, duration, workers, batc
         requestsPerWorker.toString(),
         batch.toString(),
         Boolean(duration).toString(),
-        verbose.toString()
+        verbose.toString(),
+        debug.toString()
       ],
       exec: path.join(__dirname, './worker.js'),
     });
@@ -117,16 +119,16 @@ function handleMessage(worker: Worker, packet: IPCPacket, options: UtilOptions) 
   switch (packet.type) {
     case 'action':
       const { action, value } = packet.message as Messages.Action;
-      logger.verbose(`[w::${worker.process.pid}::${action}] ${value}`);
+      logger.debug(`[w::${worker.process.pid}::${action}] ${value}`);
 
       switch (action) {
         case 'UPDATE_COUNTER':
           COUNTER++;
 
           if (duration) {
-            logger.verbose(`[counter] ${COUNTER}`);  
+            logger.debug(`[counter] ${COUNTER}`);  
           } else {
-            logger.verbose(`[counter] ${COUNTER}/${limit}`);
+            logger.debug(`[counter] ${COUNTER}/${limit}`);
           }
 
           if (!duration && COUNTER === TOTAL_REQUESTS) {
@@ -139,7 +141,7 @@ function handleMessage(worker: Worker, packet: IPCPacket, options: UtilOptions) 
       }
       break;
     case 'log':
-      logger.verbose(`[w::${worker.process.pid}] ${packet.message}`);
+      logger.debug(`[w::${worker.process.pid}] ${packet.message}`);
       break;
   }
 }

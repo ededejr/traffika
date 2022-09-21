@@ -1,14 +1,16 @@
 import chalk from 'chalk';
 
-type LogType = 'info' | 'verbose' | 'error' | 'warn' | 'important';
+type LogType = 'info' | 'verbose' | 'error' | 'warn' | 'important' | 'debug';
 
 export default class Logger {
 	owner: string;
 	isVerbose: boolean;
+	isDebug: boolean;
 
-	constructor(owner: string, isVerbose: boolean = false) {
+	constructor(owner: string, { verbose = false, debug = false }) {
 		this.owner = owner;
-		this.isVerbose = isVerbose;
+		this.isVerbose = verbose;
+		this.isDebug = debug;
 	}
 
 	private formatMessage(message: string, type: LogType = 'info') {
@@ -20,6 +22,9 @@ export default class Logger {
 				break;
 			case 'verbose':
 				method = chalk.gray;
+				break;
+			case 'debug':
+				method = chalk.gray.dim;
 				break;
 			case 'error':
 				method = chalk.red;
@@ -55,5 +60,11 @@ export default class Logger {
 
 	public important(message: string) {
 		console.log(this.formatMessage(message, 'important'));
+	}
+
+	public debug(message: string) {
+		if (this.isDebug) {
+			console.debug(this.formatMessage(message, 'debug'));
+		}
 	}
 }
