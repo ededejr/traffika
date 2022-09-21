@@ -1,14 +1,16 @@
 import chalk from 'chalk';
 
-type LogType = 'info' | 'verbose' | 'error' | 'warn' | 'important';
+type LogType = 'info' | 'verbose' | 'error' | 'warn' | 'important' | 'debug';
 
 export default class Logger {
 	owner: string;
 	isVerbose: boolean;
+	isDebug: boolean;
 
-	constructor(owner: string, isVerbose: boolean = false) {
+	constructor(owner: string, { verbose = false, debug = false }) {
 		this.owner = owner;
-		this.isVerbose = isVerbose;
+		this.isVerbose = verbose;
+		this.isDebug = debug;
 	}
 
 	private formatMessage(message: string, type: LogType = 'info') {
@@ -21,6 +23,9 @@ export default class Logger {
 			case 'verbose':
 				method = chalk.gray;
 				break;
+			case 'debug':
+				method = chalk.gray.dim;
+				break;
 			case 'error':
 				method = chalk.red;
 				break;
@@ -28,7 +33,7 @@ export default class Logger {
 				method = chalk.yellow;
 				break;
 			case 'important':
-				method = chalk.magenta;
+				method = chalk.magentaBright.bold;
 				break;
 		}
 
@@ -36,24 +41,30 @@ export default class Logger {
 	}
 
 	public info(message: string) {
-		console.log(this.formatMessage(message));
+		console.log(this.formatMessage(message, 'info'));
 	}
 
 	public verbose(message: string) {
 		if (this.isVerbose) {
-			console.debug(this.formatMessage(message));
+			console.debug(this.formatMessage(message, 'verbose'));
 		}
 	}
 
 	public error(message: string) {
-		console.error(new Error(this.formatMessage(message)));
+		console.error(this.formatMessage(message, 'error'));
 	}
 
 	public warn(message: string) {
-		console.warn(this.formatMessage(message));
+		console.warn(this.formatMessage(message, 'warn'));
 	}
 
 	public important(message: string) {
 		console.log(this.formatMessage(message, 'important'));
+	}
+
+	public debug(message: string) {
+		if (this.isDebug) {
+			console.debug(this.formatMessage(message, 'debug'));
+		}
 	}
 }

@@ -13,7 +13,12 @@ export const builder: yargs.CommandBuilder = {
 	},
 	verbose: {
 		alias: 'v',
-		describe: 'verbose output',
+		describe: 'enable verbose logs',
+		type: 'boolean',
+		default: false,
+	},
+	debug: {
+		describe: 'enable debug logs',
 		type: 'boolean',
 		default: false,
 	},
@@ -49,13 +54,14 @@ interface CliArgs {
 	duration?: number;
 	help?: boolean;
 	verbose?: boolean;
+	debug?: boolean;
 	sync?: boolean;
 }
 
 export const handler = async (args: CliArgs) => {
-	const { maxWait, limit, target, duration, sync, verbose } = args;
+	const { maxWait, limit, target, duration, sync, verbose, debug } = args;
 
-	const logger = new Logger('run', verbose);
+	const logger = new Logger('run', { verbose, debug });
 
 	if (!target) {
 		logger.warn('no target specified');
@@ -69,6 +75,10 @@ export const handler = async (args: CliArgs) => {
 	} else {
 		await makeRequestsInParallel();
 	}
+
+	process.on('beforeExit', () => {
+		Telemetry.outputStats();
+	});
 
 	async function makeRequestsInParallel() {
 		let count = 0;
@@ -135,7 +145,7 @@ function exitAfterDuration({ duration }: CliArgs) {
 		// if the duration is reached, the process
 		// will exit
 		setTimeout(() => {
-			Telemetry.onExit();
+			Telemetry.outputStats();
 			process.exit(0);
 		}, duration).unref();
 	}

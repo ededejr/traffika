@@ -1,41 +1,53 @@
 import chalk from 'chalk';
 
-const history = new Map<number, { data: string; timestamp: number }>();
-const entryRgx = /::(?<id>[A-Z0-9\-]+)]\sstop:\s(?<time>[0-9\.]+)/;
+export type HistoryEntryMetadata = {
+	statusString?: string;
+	ua?: string;
+	duration?: string;
+	id?: string;
+};
 
-function exitHandler() {
+export type HistoryEntry = { 
+	data: string;
+	timestamp: number;
+	metadata: HistoryEntryMetadata;
+};
+
+const history = new Map<number, HistoryEntry>();
+
+export interface TelemetryStats { 
+	count: number;
+	avg: number;
+	fastest: number;
+	slowest: number;
+	statusCodes: { status?: string; count: number }[];
+}
+
+function getStats(): TelemetryStats {
 	const entries = Array.from(history.values());
 
 	const metadata = entries
 		.filter(({ data }) => data.includes('stop'))
-		.map(({ data, timestamp }) => {
+		.map(({ data, metadata }) => {
 			let runTime;
-			let requestId;
-
-			const found = data.match(entryRgx);
-
-			if (found) {
-				const { id, time } = found.groups || {};
-				requestId = id;
+	
+			if (metadata?.duration) {
 				runTime = {
-					string: `${time}ms`,
-					int: parseFloat(time),
+					string: `${metadata.duration}ms`,
+					int: parseFloat(metadata.duration),
 				};
 			}
 
 			return {
 				data,
 				runTime,
-				requestId,
+				requestId: metadata?.id,
+				statusString: metadata?.statusString,
 			};
 		});
 
-	// print out more detailed summary (inefficient)
-	const important = (s: string) => console.log(chalk.magenta(s));
-	const dim = (s: string) => console.log(chalk.dim(s));
-
-	important('\nSummary:');
-
+	const statuses = metadata.map(({ statusString }) => statusString);
+	const statusCodes = Array.from(new Set(statuses)).map((status) => ({ status, count: countOccurrences(statuses, status) }));
 	const speeds = metadata
 		.map(({ runTime }) => runTime?.int)
 		.filter(Boolean) as number[];
@@ -44,18 +56,49 @@ function exitHandler() {
 	const fastest = Math.min(...speeds);
 	const slowest = Math.max(...speeds);
 
-	dim(`  count: ${speeds.length} requests`);
+	return {
+		count: speeds.length,
+		avg,
+		fastest,
+		slowest,
+		statusCodes,
+	}
+}
+
+function outputStats({ count, avg, fastest, slowest, statusCodes }: TelemetryStats = getStats()) {
+	// print out more detailed summary (inefficient)
+	const important = (s: string) => console.log(chalk.magenta(s));
+	const dim = (s: string) => console.log(chalk.dim(s));
+	important('\nSummary:');
+	dim(`  requests: ${count}`);
 	dim(`  average: ${Math.round(avg)}ms`);
 	dim(`  fastest: ${Math.round(fastest)}ms`);
 	dim(`  slowest: ${Math.round(slowest)}ms`);
+	dim(`  status codes:\n${statusCodes.map((code) => `    - ${code.status}: ${(100 * (code.count/count)).toFixed(1)}%`).join('\n')}`);
 	console.log('');
 }
 
-process.on('beforeExit', exitHandler);
+function countOccurrences<T>(arr: T[], item: T) {
+	return arr.reduce((a, v) => (v === item ? a + 1 : a), 0);
+}
 
 const Telemetry = {
+	/**
+	 * An internal map used for tracking
+	 */
 	history,
-	onExit: exitHandler,
+	/**
+	 * Pretty print the Telemetry stats
+	 */
+	outputStats,
+	/**
+	 * Get the current stats stored in the Telemetry history
+	 */
+	getStats,
+	/**
+	 * Parse a TaskRunner entry into relevant parts
+	 */
+	entryRgx: /::(?<id>[A-Z0-9\-]+)]\sstop:\s(?<duration>[0-9\.]+)/
 };
 
 export default Telemetry;
